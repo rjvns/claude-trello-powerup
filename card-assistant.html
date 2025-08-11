@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Card Assistant</title>
+  <link rel="stylesheet" href="https://p.trellocdn.com/power-up.min.css">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+    body { padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .card-info { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .suggestions { background: #e8f5e8; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .btn { background: #0079bf; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+    .btn:hover { background: #005a8b; }
+    .btn-secondary { background: #6c757d; }
+    .btn-secondary:hover { background: #545b62; }
+    .loading { text-align: center; padding: 20px; }
+  </style>
+</head>
+<body>
+  <div id="cardInfo" class="card-info"></div>
+  
+  <div style="text-align: center;">
+    <button class="btn" onclick="getSuggestions()">Get AI Suggestions</button>
+    <button class="btn" onclick="breakdownTask()">Break Down Task</button>
+    <button class="btn btn-secondary" onclick="improveDescription()">Improve Description</button>
+  </div>
+  
+  <div id="loading" class="loading" style="display: none;">
+    <p>🤖 Claude is thinking...</p>
+  </div>
+  
+  <div id="suggestions" class="suggestions" style="display: none;"></div>
+  
+  <script src="./js/powerup.js"></script>
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+    let currentCard = null;
+    
+    // Load card info on startup
+    t.card('all').then(function(card) {
+      currentCard = card;
+      displayCardInfo(card);
+    });
+    
+    function displayCardInfo(card) {
+      const html = `
+        <h3>${card.name}</h3>
+        <p><strong>Description:</strong> ${card.desc || 'No description'}</p>
+        <p><strong>Due Date:</strong> ${card.due ? new Date(card.due).toLocaleDateString() : 'Not set'}</p>
+        <p><strong>Members:</strong> ${card.idMembers?.length || 0}</p>
+        <p><strong>Checklists:</strong> ${card.checklists?.length || 0}</p>
+      `;
+      document.getElementById('cardInfo').innerHTML = html;
+    }
+    
+    async function getSuggestions() {
+      showLoading(true);
+      try {
+        const suggestions = await window.ClaudePowerUp.getCardSuggestions(t, currentCard);
+        if (suggestions) {
+          document.getElementById('suggestions').innerHTML = `
+            <h4>🤖 AI Suggestions:</h4>
+            <div>${suggestions.replace(/\n/g, '<br>')}</div>
+          `;
+          document.getElementById('suggestions').style.display = 'block';
+        }
+      } catch (error) {
+        alert('Failed to get suggestions: ' + error.message);
+      }
+      showLoading(false);
+    }
+    
+    async function breakdownTask() {
+      showLoading(true);
+      try {
+        await window.ClaudePowerUp.breakDownTask(t);
+      } catch (error) {
+        alert('Failed to break down task: ' + error.message);
+      }
+      showLoading(false);
+    }
+    
+    async function improveDescription() {
+      // This would call Claude to improve the card description
+      alert('Feature coming soon!');
+    }
+    
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>
