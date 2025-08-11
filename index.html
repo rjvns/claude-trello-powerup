@@ -2,10 +2,18 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Claude AI Power-Up</title>
   <script src="https://p.trellocdn.com/power-up.min.js"></script>
 </head>
 <body>
+  <!-- This page serves as the iframe connector for the Trello Power-Up -->
+  <script>
+    // Add error handling
+    window.addEventListener('error', function(e) {
+      console.error('Power-Up error:', e.error);
+    });
+  </script>
   <script src="./js/powerup.js"></script>
 </body>
 </html>
