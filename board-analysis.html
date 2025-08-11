@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Board Analysis</title>
+  <link rel="stylesheet" href="https://p.trellocdn.com/power-up.min.css">
+  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+  <style>
+    body { padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .loading { text-align: center; padding: 40px; }
+    .analysis-result { line-height: 1.6; }
+    .metrics { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    .metric { display: inline-block; margin: 5px 10px 5px 0; }
+    .metric-value { font-weight: bold; color: #0079bf; }
+    .btn { background: #0079bf; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+    .btn:hover { background: #005a8b; }
+    .error { color: #d32f2f; padding: 15px; background: #ffebee; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading">
+    <p>🤖 Claude is analyzing your board...</p>
+  </div>
+  
+  <div id="results" style="display: none;">
+    <div class="metrics" id="metrics"></div>
+    <div class="analysis-result" id="analysis"></div>
+    <button class="btn" onclick="exportAnalysis()">Export Report</button>
+    <button class="btn" onclick="runAgain()">Analyze Again</button>
+  </div>
+  
+  <div id="error" style="display: none;" class="error"></div>
+  
+  <script src="./js/powerup.js"></script>
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+    
+    // Run analysis on load
+    runBoardAnalysis();
+    
+    async function runBoardAnalysis() {
+      try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+        
+        const result = await window.ClaudePowerUp.analyzeBoardHealth(t);
+        
+        // Display metrics
+        const metricsHtml = `
+          <div class="metric">Total Cards: <span class="metric-value">${result.boardData.totalCards}</span></div>
+          <div class="metric">Overdue: <span class="metric-value">${result.boardData.overdueTasks}</span></div>
+          <div class="metric">Completed: <span class="metric-value">${result.boardData.completedTasks}</span></div>
+        `;
+        document.getElementById('metrics').innerHTML = metricsHtml;
+        
+        // Display analysis
+        document.getElementById('analysis').innerHTML = result.analysis.replace(/\n/g, '<br>');
+        
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+        
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error').textContent = 'Analysis failed: ' + error.message;
+      }
+    }
+    
+    function runAgain() {
+      runBoardAnalysis();
+    }
+    
+    function exportAnalysis() {
+      const analysis = document.getElementById('analysis').textContent;
+      const metrics = document.getElementById('metrics').textContent;
+      const report = `Board Analysis Report\n\n${metrics}\n\n${analysis}`;
+      
+      // Create downloadable file
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'board-analysis-report.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
