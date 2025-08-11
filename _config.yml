@@ -1,0 +1,11 @@
+# GitHub Pages configuration for Trello Power-Up
+plugins:
+  - jekyll-optional-front-matter
+
+# Allow iframe embedding
+webrick:
+  headers:
+    X-Frame-Options: "ALLOWALL"
+    Access-Control-Allow-Origin: "*"
+    Access-Control-Allow-Methods: "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers: "Content-Type"
