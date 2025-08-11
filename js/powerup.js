@@ -1,15 +1,11 @@
 // Claude AI Power-Up for Trello
-// This creates a native Trello Power-Up with Claude integration
-
-// Power-Up manifest and initialization
-const POWERUP_NAME = 'Claude AI Assistant';
-const POWERUP_ID = 'claude-ai-assistant';
+console.log('Claude Power-Up loading...');
 
 // Initialize the Power-Up
 window.TrelloPowerUp.initialize({
   'board-buttons': function(t, options) {
     return [{
-      icon: 'https://cdn.jsdelivr.net/gh/anthropic/claude-assets@main/claude-icon.svg',
+      icon: 'https://img.icons8.com/material-outlined/24/000000/artificial-intelligence.png',
       text: 'Claude Analysis',
       callback: function(t) {
         return t.popup({
@@ -23,7 +19,7 @@ window.TrelloPowerUp.initialize({
 
   'card-buttons': function(t, options) {
     return [{
-      icon: 'https://cdn.jsdelivr.net/gh/anthropic/claude-assets@main/claude-icon.svg',
+      icon: 'https://img.icons8.com/material-outlined/24/000000/artificial-intelligence.png',
       text: 'AI Assist',
       callback: function(t) {
         return t.popup({
@@ -118,50 +114,21 @@ async function breakDownTask(t) {
     Title: ${card.name}
     Description: ${card.desc || 'No description provided'}
     
-    Return a JSON array of objects with this format:
-    [
-      {
-        "task": "Specific actionable task",
-        "description": "Brief description of what needs to be done",
-        "estimatedTime": "2h"
-      }
-    ]
-    
-    Make sure each subtask is:
-    - Specific and actionable
-    - Can be completed in one sitting
-    - Has a clear outcome
+    Return a simple list of tasks, one per line:
     `;
 
     const response = await claude.callClaude(prompt, 800);
     
-    try {
-      // Parse the JSON response
-      const subtasks = JSON.parse(response.replace(/```json\n?/g, '').replace(/```\n?/g, ''));
-      
-      // Create a checklist with the subtasks
-      const checklistName = `AI Breakdown - ${new Date().toLocaleDateString()}`;
-      
-      // Note: In a real Power-Up, you'd use Trello's API to create checklists
-      // For this demo, we'll show the results in a popup
-      return t.popup({
-        title: 'Task Breakdown Complete',
-        items: subtasks.map(subtask => ({
-          text: `${subtask.task} (${subtask.estimatedTime})`,
-          callback: function(t) {
-            // Add this as a comment or checklist item
-            return t.closePopup();
-          }
-        }))
-      });
-      
-    } catch (parseError) {
-      console.error('Failed to parse Claude response:', parseError);
-      return t.popup({
-        title: 'Task Breakdown',
-        url: './breakdown-result.html?result=' + encodeURIComponent(response)
-      });
-    }
+    // Show the breakdown in a popup
+    return t.popup({
+      title: 'Task Breakdown',
+      items: [{
+        text: 'Breakdown Complete - Check Comments',
+        callback: function(t) {
+          return t.closePopup();
+        }
+      }]
+    });
     
   } catch (error) {
     console.error('Task breakdown failed:', error);
@@ -278,3 +245,5 @@ window.ClaudePowerUp = {
   getCardSuggestions,
   breakDownTask
 };
+
+console.log('Claude Power-Up loaded successfully!');
