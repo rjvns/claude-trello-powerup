@@ -173,9 +173,13 @@ Provide a brief analysis with:
 3. Top 3 actionable recommendations
 Keep the response concise and actionable.`;
 
-                console.log('Sending request to Claude API...');
+                console.log('Sending request to Claude API through CORS proxy...');
                 
-                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                // USE CORS PROXY TO BYPASS BROWSER RESTRICTIONS
+                const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+                const apiUrl = CORS_PROXY + 'https://api.anthropic.com/v1/messages';
+                
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
