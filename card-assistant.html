@@ -1,93 +1,364 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Card Assistant</title>
-  <link rel="stylesheet" href="https://p.trellocdn.com/power-up.min.css">
-  <script src="https://p.trellocdn.com/power-up.min.js"></script>
-  <style>
-    body { padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    .card-info { background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0; }
-    .suggestions { background: #e8f5e8; padding: 15px; border-radius: 6px; margin: 15px 0; }
-    .btn { background: #0079bf; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-    .btn:hover { background: #005a8b; }
-    .btn-secondary { background: #6c757d; }
-    .btn-secondary:hover { background: #545b62; }
-    .loading { text-align: center; padding: 20px; }
-  </style>
+    <meta charset="utf-8">
+    <title>AI Card Assistant</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f5f7;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        h2 {
+            color: #172b4d;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        button {
+            background: #0079bf;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        button:disabled {
+            background: #97a0af;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .loading {
+            text-align: center;
+            color: #5e6c84;
+            padding: 20px;
+        }
+        .error {
+            background: #ffebe6;
+            color: #c9372c;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 12px;
+        }
+        .success {
+            background: #d4f4dd;
+            color: #00875a;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .suggestion-item {
+            background: #f4f5f7;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .suggestion-title {
+            font-weight: 600;
+            color: #172b4d;
+            margin-bottom: 4px;
+        }
+        .suggestion-text {
+            color: #5e6c84;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        pre {
+            background: #f4f5f7;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+    </style>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
 </head>
 <body>
-  <div id="cardInfo" class="card-info"></div>
-  
-  <div style="text-align: center;">
-    <button class="btn" onclick="getSuggestions()">Get AI Suggestions</button>
-    <button class="btn" onclick="breakdownTask()">Break Down Task</button>
-    <button class="btn btn-secondary" onclick="improveDescription()">Improve Description</button>
-  </div>
-  
-  <div id="loading" class="loading" style="display: none;">
-    <p>🤖 Claude is thinking...</p>
-  </div>
-  
-  <div id="suggestions" class="suggestions" style="display: none;"></div>
-  
-  <script src="./js/powerup.js"></script>
-  <script>
-    const t = window.TrelloPowerUp.iframe();
-    let currentCard = null;
-    
-    // Load card info on startup
-    t.card('all').then(function(card) {
-      currentCard = card;
-      displayCardInfo(card);
-    });
-    
-    function displayCardInfo(card) {
-      const html = `
-        <h3>${card.name}</h3>
-        <p><strong>Description:</strong> ${card.desc || 'No description'}</p>
-        <p><strong>Due Date:</strong> ${card.due ? new Date(card.due).toLocaleDateString() : 'Not set'}</p>
-        <p><strong>Members:</strong> ${card.idMembers?.length || 0}</p>
-        <p><strong>Checklists:</strong> ${card.checklists?.length || 0}</p>
-      `;
-      document.getElementById('cardInfo').innerHTML = html;
-    }
-    
-    async function getSuggestions() {
-      showLoading(true);
-      try {
-        const suggestions = await window.ClaudePowerUp.getCardSuggestions(t, currentCard);
-        if (suggestions) {
-          document.getElementById('suggestions').innerHTML = `
-            <h4>🤖 AI Suggestions:</h4>
-            <div>${suggestions.replace(/\n/g, '<br>')}</div>
-          `;
-          document.getElementById('suggestions').style.display = 'block';
+    <div class="container">
+        <h2>AI Card Assistant</h2>
+        
+        <div class="button-group">
+            <button id="suggestBtn" onclick="getCardSuggestions()">
+                💡 Get AI Suggestions
+            </button>
+            <button id="breakdownBtn" onclick="breakDownTask()">
+                📝 Break Down Task
+            </button>
+            <button id="improveBtn" onclick="improveDescription()">
+                ✨ Improve Description
+            </button>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const t = window.TrelloPowerUp.iframe();
+        const resultDiv = document.getElementById('result');
+        
+        // Function to show loading state
+        function showLoading(message = 'Processing...') {
+            resultDiv.innerHTML = `<div class="loading">${message}</div>`;
+            resultDiv.classList.add('show');
         }
-      } catch (error) {
-        alert('Failed to get suggestions: ' + error.message);
-      }
-      showLoading(false);
-    }
-    
-    async function breakdownTask() {
-      showLoading(true);
-      try {
-        await window.ClaudePowerUp.breakDownTask(t);
-      } catch (error) {
-        alert('Failed to break down task: ' + error.message);
-      }
-      showLoading(false);
-    }
-    
-    async function improveDescription() {
-      // This would call Claude to improve the card description
-      alert('Feature coming soon!');
-    }
-    
-    function showLoading(show) {
-      document.getElementById('loading').style.display = show ? 'block' : 'none';
-    }
-  </script>
+        
+        // Function to show error
+        function showError(message) {
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+            resultDiv.classList.add('show');
+        }
+        
+        // Function to show success/result
+        function showResult(content) {
+            resultDiv.innerHTML = content;
+            resultDiv.classList.add('show');
+        }
+
+        // Get AI suggestions for the card
+        async function getCardSuggestions() {
+            try {
+                showLoading('Getting AI suggestions...');
+                
+                // Get card details
+                const card = await t.card('name', 'desc', 'due', 'members', 'labels');
+                
+                // Get API key
+                const apiKey = await t.get('board', 'shared', 'claudeApiKey');
+                if (!apiKey) {
+                    showError('Please set your Claude API key in the Power-Up settings');
+                    return;
+                }
+                
+                // Prepare prompt
+                const prompt = `Analyze this Trello card and provide suggestions:
+
+Card Title: ${card.name || 'Untitled'}
+Description: ${card.desc || 'No description'}
+Due Date: ${card.due ? new Date(card.due).toLocaleDateString() : 'Not set'}
+
+Provide:
+1. Priority level (High/Medium/Low) with reasoning
+2. Suggested next actions (2-3 specific steps)
+3. Potential blockers or risks
+4. Time estimate for completion
+
+Keep suggestions concise and actionable.`;
+
+                // Call Claude API through CORS proxy
+                const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+                const response = await fetch(CORS_PROXY + 'https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 400,
+                        messages: [{
+                            role: 'user',
+                            content: prompt
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const suggestions = data.content[0].text;
+                
+                showResult(`
+                    <div class="success">
+                        <div class="suggestion-title">AI Suggestions</div>
+                        <div class="suggestion-text" style="white-space: pre-wrap;">${suggestions}</div>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('Error getting suggestions:', error);
+                showError(`Failed to get suggestions: ${error.message}`);
+            }
+        }
+
+        // Break down task into subtasks
+        async function breakDownTask() {
+            try {
+                showLoading('Breaking down task...');
+                
+                // Get card details
+                const card = await t.card('name', 'desc');
+                
+                // Get API key
+                const apiKey = await t.get('board', 'shared', 'claudeApiKey');
+                if (!apiKey) {
+                    showError('Please set your Claude API key in the Power-Up settings');
+                    return;
+                }
+                
+                const prompt = `Break down this task into subtasks:
+
+Task: ${card.name || 'Untitled'}
+Description: ${card.desc || 'No description'}
+
+Create a checklist of 4-7 specific, actionable subtasks that would complete this task.
+Format as a simple numbered list.`;
+
+                // Call Claude API through CORS proxy
+                const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+                const response = await fetch(CORS_PROXY + 'https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 300,
+                        messages: [{
+                            role: 'user',
+                            content: prompt
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const breakdown = data.content[0].text;
+                
+                showResult(`
+                    <div class="success">
+                        <div class="suggestion-title">Task Breakdown</div>
+                        <div class="suggestion-text" style="white-space: pre-wrap;">${breakdown}</div>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('Error breaking down task:', error);
+                showError(`Failed to break down task: ${error.message}`);
+            }
+        }
+
+        // Improve card description
+        async function improveDescription() {
+            try {
+                showLoading('Improving description...');
+                
+                // Get card details
+                const card = await t.card('name', 'desc');
+                
+                // Get API key
+                const apiKey = await t.get('board', 'shared', 'claudeApiKey');
+                if (!apiKey) {
+                    showError('Please set your Claude API key in the Power-Up settings');
+                    return;
+                }
+                
+                const prompt = `Improve this Trello card description to be clearer and more actionable:
+
+Card Title: ${card.name || 'Untitled'}
+Current Description: ${card.desc || 'No description'}
+
+Provide an improved description that includes:
+- Clear objective
+- Success criteria
+- Any relevant context
+
+Keep it concise but comprehensive. Use bullet points where appropriate.`;
+
+                // Call Claude API through CORS proxy
+                const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+                const response = await fetch(CORS_PROXY + 'https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': apiKey,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-dangerous-direct-browser-access': 'true'
+                    },
+                    body: JSON.stringify({
+                        model: 'claude-3-haiku-20240307',
+                        max_tokens: 350,
+                        messages: [{
+                            role: 'user',
+                            content: prompt
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const improved = data.content[0].text;
+                
+                showResult(`
+                    <div class="success">
+                        <div class="suggestion-title">Improved Description</div>
+                        <div class="suggestion-text" style="white-space: pre-wrap;">${improved}</div>
+                        <button onclick="copyToClipboard(\`${improved.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`)" style="margin-top: 12px;">
+                            📋 Copy to Clipboard
+                        </button>
+                    </div>
+                `);
+                
+            } catch (error) {
+                console.error('Error improving description:', error);
+                showError(`Failed to improve description: ${error.message}`);
+            }
+        }
+
+        // Copy text to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary success message
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+        
+        // Resize popup to fit content
+        t.sizeTo('#container');
+    </script>
 </body>
 </html>
